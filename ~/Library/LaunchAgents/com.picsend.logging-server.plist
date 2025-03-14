@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.picsend.logging-server</string>
+    <key>WorkingDirectory</key>
+    <string>/Users/stivenjakson/my-app/picsend/server/logging-server</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/pm2</string>
+        <string>start</string>
+        <string>ecosystem.config.js</string>
+    </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>NODE_ENV</key>
+        <string>production</string>
+        <key>PORT</key>
+        <string>3015</string>
+        <key>DB_HOST</key>
+        <string>localhost</string>
+        <key>DB_USER</key>
+        <string>root</string>
+        <key>DB_PASS</key>
+        <string>123</string>
+        <key>DB_NAME</key>
+        <string>picsend_logs</string>
+    </dict>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/Users/stivenjakson/my-app/picsend/logs/launchd/logging-server.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/stivenjakson/my-app/picsend/logs/launchd/logging-server.error.log</string>
+</dict>
+</plist> 

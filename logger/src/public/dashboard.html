@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سامانه مدیریت لاگ‌ها | نسخه حرفه‌ای</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font/css/materialdesignicons.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css" rel="stylesheet">
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment-jalaali@0.9.2/build/moment-jalaali.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css" rel="stylesheet">
+    <script>
+        const SOCKET_URL = `http://${window.location.hostname}:3015`;
+        window.socketConfig = { url: SOCKET_URL };
+        moment.loadPersian({ usePersianDigits: true });
+    </script>
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css');
+
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #475569;
+            --success-color: #22c55e;
+            --danger-color: #ef4444;
+            --warning-color: #f59e0b;
+            --info-color: #06b6d4;
+            --background-color: #f8fafc;
+            --card-background: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --transition-speed: 0.3s;
+        }
+
+        body {
+            font-family: "Vazirmatn", system-ui;
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            transition: background-color var(--transition-speed);
+        }
+
+        /* نوار اصلی */
+        .main-header {
+            background: var(--card-background);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            top: 0;
+            right: 0;
+            left: 0;
+            z-index: 1030;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            padding: 0 1.5rem;
+        }
+
+        .nav-tabs {
+            border: none;
+            margin-right: 2rem;
+        }
+
+        .nav-tabs .nav-link {
+            border: none;
+            color: var(--text-secondary);
+            padding: 0.5rem 1rem;
+            margin-right: 0.5rem;
+            border-radius: 8px;
+            transition: all var(--transition-speed);
+        }
+
+        .nav-tabs .nav-link:hover {
+            background: rgba(37, 99, 235, 0.1);
+            color: var(--primary-color);
+        }
+
+        .nav-tabs .nav-link.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        /* سایدبار جدید */
+        .sidebar {
+            position: fixed;
+            top: 60px;
+            right: 0;
+            bottom: 0;
+            width: 300px;
+            background: var(--card-background);
+            border-left: 1px solid var(--border-color);
+            overflow-y: auto;
+            transition: transform var(--transition-speed);
+            z-index: 1020;
+            padding: 1.5rem;
+        }
+
+        .sidebar.collapsed {
+            transform: translateX(300px);
+        }
+
+        /* فیلترهای پیشرفته */
+        .filter-section {
+            background: var(--card-background);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .filter-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .filter-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .log-level-filter {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+        }
+
+        .level-badge {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all var(--transition-speed);
+            border: 1px solid var(--border-color);
+        }
+
+        .level-badge:hover {
+            transform: translateY(-2px);
+        }
+
+        .level-badge.active {
+            border-color: var(--primary-color);
+            background: rgba(37, 99, 235, 0.1);
+        }
+
+        .level-badge .count {
+            margin-right: auto;
+            background: var(--primary-color);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+        }
+
+        /* محتوای اصلی */
+        .main-content {
+            margin-right: 300px;
+            margin-top: 60px;
+            padding: 1.5rem;
+            transition: margin var(--transition-speed);
+        }
+
+        .main-content.expanded {
+            margin-right: 0;
+        }
+
+        /* کارت‌های آمار */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--card-background);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: all var(--transition-speed);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* جدول لاگ‌ها */
+        .logs-container {
+            background: var(--card-background);
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .log-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .log-table th {
+            background: var(--card-background);
+            padding: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .log-row {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .log-row td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color var(--transition-speed);
+        }
+
+        .log-row:hover td {
+            background-color: rgba(37, 99, 235, 0.05);
+        }
+
+        /* نشانگر‌های وضعیت */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .status-error {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--danger-color);
+        }
+
+        .status-warn {
+            background-color: rgba(245, 158, 11, 0.1);
+            color: var(--warning-color);
+        }
+
+        .status-info {
+            background-color: rgba(6, 182, 212, 0.1);
+            color: var(--info-color);
+        }
+
+        .status-debug {
+            background-color: rgba(71, 85, 105, 0.1);
+            color: var(--secondary-color);
+        }
+
+        /* نوار زمانی */
+        .timeline-slider {
+            position: relative;
+            padding: 2rem 0;
+        }
+
+        .timeline-track {
+            height: 4px;
+            background: var(--border-color);
+            border-radius: 2px;
+            position: relative;
+        }
+
+        .timeline-progress {
+            position: absolute;
+            top: 0;
+            right: 0;
+            height: 100%;
+            background: var(--primary-color);
+            border-radius: 2px;
+        }
+
+        .timeline-handle {
+            width: 20px;
+            height: 20px;
+            background: white;
+            border: 2px solid var(--primary-color);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            transform: translate(50%, -50%);
+            cursor: pointer;
+            transition: all var(--transition-speed);
+        }
+
+        .timeline-handle:hover {
+            transform: translate(50%, -50%) scale(1.2);
+        }
+
+        .timeline-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        /* انیمیشن‌ها */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(0); }
+        }
+
+        /* دکمه‌های شناور */
+        .floating-actions {
+            position: fixed;
+            bottom: 2rem;
+            left: 2rem;
+            display: flex;
+            gap: 1rem;
+            z-index: 1000;
+        }
+
+        .floating-button {
+            width: 48px;
+            height: 48px;
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: all var(--transition-speed);
+            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
+        }
+
+        .floating-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 8px rgba(37, 99, 235, 0.3);
+        }
+
+        .floating-button.live {
+            background: var(--success-color);
+        }
+
+        .floating-button.live.active {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+
+        /* مودال جزئیات */
+        .detail-modal .modal-content {
+            border-radius: 12px;
+            border: none;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .detail-modal .modal-header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 1.5rem;
+        }
+
+        .detail-modal .modal-body {
+            padding: 1.5rem;
+        }
+
+        .detail-modal pre {
+            background: var(--background-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 0;
+        }
+
+        /* نشانگر وضعیت اتصال */
+        .connection-status {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-right: auto;
+        }
+
+        .connection-status.connected {
+            background-color: rgba(34, 197, 94, 0.1);
+            color: var(--success-color);
+        }
+
+        .connection-status.disconnected {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--danger-color);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-left: 0.5rem;
+        }
+
+        .connected .status-dot {
+            background-color: var(--success-color);
+            box-shadow: 0 0 0 rgba(34, 197, 94, 0.4);
+            animation: pulseDot 2s infinite;
+        }
+
+        .disconnected .status-dot {
+            background-color: var(--danger-color);
+        }
+
+        @keyframes pulseDot {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+    </style>
+</head>
+<body>
+    <!-- نوار اصلی -->
+    <header class="main-header">
+        <div class="connection-status" id="connectionStatus">
+            <span class="status-dot"></span>
+            <span class="status-text">در حال اتصال...</span>
+        </div>
+        <ul class="nav nav-tabs">
+            <li class="nav-item">
+                <a class="nav-link active" href="#" data-view="realtime">
+                    <i class="mdi mdi-clock-outline"></i>
+                    نمای زنده
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" data-view="analytics">
+                    <i class="mdi mdi-chart-bar"></i>
+                    تحلیل‌ها
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" data-view="archive">
+                    <i class="mdi mdi-archive-outline"></i>
+                    آرشیو
+                </a>
+            </li>
+        </ul>
+    </header>
+
+    <!-- سایدبار -->
+    <aside class="sidebar">
+        <!-- جستجو -->
+        <div class="filter-section">
+            <div class="filter-header">
+                <h3 class="filter-title">
+                    <i class="mdi mdi-magnify"></i>
+                    جستجو
+                </h3>
+            </div>
+            <div class="search-box">
+                <input type="text" class="form-control" id="searchInput" placeholder="جستجو در لاگ‌ها...">
+            </div>
+        </div>
+
+        <!-- فیلتر سطح لاگ -->
+        <div class="filter-section">
+            <div class="filter-header">
+                <h3 class="filter-title">
+                    <i class="mdi mdi-filter-variant"></i>
+                    سطح لاگ
+                </h3>
+                <button class="btn btn-sm btn-outline-secondary" id="resetLevelFilter">
+                    <i class="mdi mdi-refresh"></i>
+                </button>
+            </div>
+            <div class="log-level-filter">
+                <div class="level-badge" data-level="error">
+                    <i class="mdi mdi-alert-circle text-danger"></i>
+                    <span class="ms-2">خطا</span>
+                    <span class="count" id="errorCount">0</span>
+                </div>
+                <div class="level-badge" data-level="warn">
+                    <i class="mdi mdi-alert text-warning"></i>
+                    <span class="ms-2">هشدار</span>
+                    <span class="count" id="warnCount">0</span>
+                </div>
+                <div class="level-badge" data-level="info">
+                    <i class="mdi mdi-information text-info"></i>
+                    <span class="ms-2">اطلاعات</span>
+                    <span class="count" id="infoCount">0</span>
+                </div>
+                <div class="level-badge" data-level="debug">
+                    <i class="mdi mdi-bug-outline text-secondary"></i>
+                    <span class="ms-2">دیباگ</span>
+                    <span class="count" id="debugCount">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- فیلتر سرویس -->
+        <div class="filter-section">
+            <div class="filter-header">
+                <h3 class="filter-title">
+                    <i class="mdi mdi-cube-outline"></i>
+                    سرویس‌ها
+                </h3>
+            </div>
+            <div class="service-filter" id="serviceFilter">
+                <!-- به صورت پویا پر می‌شود -->
+            </div>
+        </div>
+
+        <!-- فیلتر زمانی -->
+        <div class="filter-section">
+            <div class="filter-header">
+                <h3 class="filter-title">
+                    <i class="mdi mdi-clock-outline"></i>
+                    بازه زمانی
+                </h3>
+                <span class="badge bg-primary" id="timeRangeDisplay">24 ساعت اخیر</span>
+            </div>
+            <div class="timeline-slider">
+                <div class="timeline-track">
+                    <div class="timeline-progress" id="timelineProgress"></div>
+                    <div class="timeline-handle" id="timelineHandle"></div>
+                </div>
+                <div class="timeline-labels">
+                    <span>1 دقیقه</span>
+                    <span>1 ساعت</span>
+                    <span>1 روز</span>
+                    <span>1 هفته</span>
+                    <span>30 روز</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- نمودارها -->
+        <div class="filter-section">
+            <div class="filter-header">
+                <h3 class="filter-title">
+                    <i class="mdi mdi-chart-arc"></i>
+                    توزیع لاگ‌ها
+                </h3>
+            </div>
+            <div id="logDistributionChart"></div>
+        </div>
+    </aside>
+
+    <!-- محتوای اصلی -->
+    <main class="main-content">
+        <!-- کارت‌های آمار -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h4 class="mb-3">کل لاگ‌ها</h4>
+                <div class="d-flex align-items-center">
+                    <i class="mdi mdi-text-box-multiple-outline fs-3 text-primary"></i>
+                    <span class="fs-2 ms-2" id="totalLogs">0</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <h4 class="mb-3">خطاهای بحرانی</h4>
+                <div class="d-flex align-items-center">
+                    <i class="mdi mdi-alert-circle fs-3 text-danger"></i>
+                    <span class="fs-2 ms-2" id="criticalErrors">0</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <h4 class="mb-3">سرویس‌های فعال</h4>
+                <div class="d-flex align-items-center">
+                    <i class="mdi mdi-cube-outline fs-3 text-success"></i>
+                    <span class="fs-2 ms-2" id="activeServices">0</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <h4 class="mb-3">میانگین لاگ در دقیقه</h4>
+                <div class="d-flex align-items-center">
+                    <i class="mdi mdi-chart-line fs-3 text-info"></i>
+                    <span class="fs-2 ms-2" id="logsPerMinute">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- جدول لاگ‌ها -->
+        <div class="logs-container">
+            <div class="table-responsive">
+                <table class="log-table">
+                    <thead>
+                        <tr>
+                            <th>زمان</th>
+                            <th>سطح</th>
+                            <th>سرویس</th>
+                            <th>پیام</th>
+                            <th>عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logTable"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- دکمه‌های شناور -->
+    <div class="floating-actions">
+        <button class="floating-button" id="refreshBtn" title="به‌روزرسانی">
+            <i class="mdi mdi-refresh"></i>
+        </button>
+        <button class="floating-button live" id="liveBtn" title="نمایش زنده">
+            <i class="mdi mdi-broadcast"></i>
+        </button>
+        <button class="floating-button" id="exportBtn" title="خروجی JSON">
+            <i class="mdi mdi-download"></i>
+        </button>
+        <button class="floating-button" id="scrollTopBtn" title="رفتن به بالا">
+            <i class="mdi mdi-arrow-up"></i>
+        </button>
+    </div>
+
+    <!-- تمپلیت‌های نما -->
+    <template id="realtimeTemplate">
+        <!-- کارت‌های آمار -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h4 class="mb-3">کل لاگ‌ها</h4>
+                <div class="d-flex align-items-center">
+                    <i class="mdi mdi-text-box-multiple-outline fs-3 text-primary"></i>
+                    <span class="fs-2 ms-2" id="totalLogs">0</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <h4 class="mb-3">خطاهای بحرانی</h4>
+                <div class="d-flex align-items-center">
+                    <i class="mdi mdi-alert-circle fs-3 text-danger"></i>
+                    <span class="fs-2 ms-2" id="criticalErrors">0</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <h4 class="mb-3">سرویس‌های فعال</h4>
+                <div class="d-flex align-items-center">
+                    <i class="mdi mdi-cube-outline fs-3 text-success"></i>
+                    <span class="fs-2 ms-2" id="activeServices">0</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <h4 class="mb-3">میانگین لاگ در دقیقه</h4>
+                <div class="d-flex align-items-center">
+                    <i class="mdi mdi-chart-line fs-3 text-info"></i>
+                    <span class="fs-2 ms-2" id="logsPerMinute">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- جدول لاگ‌ها -->
+        <div class="logs-container">
+            <div class="table-responsive">
+                <table class="log-table">
+                    <thead>
+                        <tr>
+                            <th>زمان</th>
+                            <th>سطح</th>
+                            <th>سرویس</th>
+                            <th>پیام</th>
+                            <th>عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logTable"></tbody>
+                </table>
+            </div>
+        </div>
+    </template>
+
+    <template id="analyticsTemplate">
+        <div class="analytics-container">
+            <div class="row g-4">
+                <!-- نمودار توزیع لاگ‌ها -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">توزیع لاگ‌ها بر اساس سطح</h5>
+                            <div id="logLevelDistribution"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- نمودار فعالیت سرویس‌ها -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">فعالیت سرویس‌ها</h5>
+                            <div id="serviceActivity"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- نمودار روند خطاها -->
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">روند خطاها در طول زمان</h5>
+                            <div id="errorTrend"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="archiveTemplate">
+        <div class="archive-container">
+            <!-- فیلترهای پیشرفته -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>از تاریخ</label>
+                                <input type="text" class="form-control persian-date" id="startDate" data-jdate>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>تا تاریخ</label>
+                                <input type="text" class="form-control persian-date" id="endDate" data-jdate>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>جستجو</label>
+                                <input type="text" class="form-control" id="archiveSearch" placeholder="جستجو در لاگ‌ها...">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>&nbsp;</label>
+                                <button class="btn btn-primary w-100" id="searchArchive">
+                                    <i class="mdi mdi-magnify me-1"></i>
+                                    جستجو
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- جدول آرشیو -->
+            <div class="logs-container">
+                <div class="table-responsive">
+                    <table class="log-table">
+                        <thead>
+                            <tr>
+                                <th>زمان</th>
+                                <th>سطح</th>
+                                <th>سرویس</th>
+                                <th>پیام</th>
+                                <th>عملیات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="archiveTable"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- مودال جزئیات -->
+    <div class="modal fade detail-modal" id="logDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">جزئیات لاگ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <label class="text-muted mb-1">زمان</label>
+                            <div id="logTime" class="fw-bold"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="text-muted mb-1">سطح</label>
+                            <div id="logLevel" class="fw-bold"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="text-muted mb-1">سرویس</label>
+                            <div id="logSource" class="fw-bold"></div>
+                        </div>
+                    </div>
+                    <label class="text-muted mb-2">جزئیات کامل</label>
+                    <pre id="logDetail"></pre>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">بستن</button>
+                    <button type="button" class="btn btn-primary" id="copyLogBtn">
+                        <i class="mdi mdi-content-copy me-1"></i>
+                        کپی
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="dashboard.js"></script>
+</body>
+</html> 
