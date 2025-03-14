@@ -3,147 +3,1481 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>داشبورد لاگینگ ساده</title>
+    <title>داشبورد مدیریت لاگ‌ها | پیک‌سند</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment"></script>
     <style>
+        @import url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css');
+        
+        :root {
+            --primary-color: #4a6cf7;
+            --dark-color: #1a3066;
+            --light-color: #f8f9fa;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #0dcaf0;
+            --success-color: #198754;
+            --text-color: #495057;
+            --border-color: #dee2e6;
+        }
+        
         body {
-            font-family: system-ui, -apple-system, sans-serif;
-            margin: 0;
-            padding: 20px;
-            direction: rtl;
+            font-family: 'Vazirmatn', system-ui, -apple-system, sans-serif;
+            background-color: #f8f9fa;
+            color: var(--text-color);
+            line-height: 1.6;
         }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
+        
+        .navbar {
+            background-color: var(--primary-color);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        .header {
+        
+        .sidebar {
+            background-color: white;
+            height: calc(100vh - 56px);
+            position: sticky;
+            top: 56px;
+            overflow-y: auto;
+            padding: 20px 15px;
+            border-left: 1px solid var(--border-color);
+        }
+        
+        .log-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        
+        .log-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
             display: flex;
             justify-content: space-between;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
+            align-items: center;
         }
-        .logs {
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 10px;
-            max-height: 600px;
+        
+        .log-body {
+            padding: 0;
+            max-height: calc(100vh - 200px);
             overflow-y: auto;
         }
-        .log-entry {
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-            margin-bottom: 10px;
-            animation: fadeIn 0.3s ease;
-        }
-        .log-entry:last-child {
+        
+        .log-table {
+            width: 100%;
             margin-bottom: 0;
-            border-bottom: none;
         }
-        .error { color: #dc3545; background-color: #f8d7da; }
-        .warn { color: #856404; background-color: #fff3cd; }
-        .info { color: #0c5460; background-color: #d1ecf1; }
-        .debug { color: #383d41; background-color: #e2e3e5; }
-        .log-badge {
-            display: inline-block;
+        
+        .log-table th {
+            position: sticky;
+            top: 0;
+            background-color: white;
+            z-index: 10;
+            border-top: none;
+        }
+        
+        .log-row:hover {
+            background-color: rgba(0,0,0,0.02);
+        }
+        
+        .log-level {
+            font-weight: bold;
             padding: 3px 8px;
             border-radius: 4px;
-            font-weight: bold;
+            font-size: 0.8rem;
             text-transform: uppercase;
-            font-size: 12px;
-            margin-right: 10px;
         }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        
+        .level-error {
+            background-color: #feeaed;
+            color: var(--danger-color);
+        }
+        
+        .level-warn {
+            background-color: #fff8e7;
+            color: var(--warning-color);
+        }
+        
+        .level-info {
+            background-color: #e7f9fd;
+            color: var(--info-color);
+        }
+        
+        .level-debug {
+            background-color: #f1f1f1;
+            color: #6c757d;
+        }
+        
+        .filter-section {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .filter-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .filter-title i {
+            margin-left: 8px;
+        }
+        
+        .stat-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 15px;
+            margin-bottom: 20px;
+            transition: transform 0.2s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-3px);
+        }
+        
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin: 8px 0;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        
+        .badge-source {
+            background-color: #e9ecef;
+            color: #495057;
+            font-weight: normal;
+        }
+        
+        .btn-filter {
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+        
+        .btn-filter.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .connection-status {
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .status-connected {
+            background-color: var(--success-color);
+            box-shadow: 0 0 0 3px rgba(25, 135, 84, 0.3);
+            animation: pulse 2s infinite;
+        }
+        
+        .status-disconnected {
+            background-color: var(--danger-color);
+        }
+        
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 5px rgba(25, 135, 84, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(25, 135, 84, 0);
+            }
+        }
+        
+        .search-container {
+            position: relative;
+        }
+        
+        .search-container i {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+        }
+        
+        .search-container input {
+            padding-right: 30px;
+        }
+        
+        /* استایل‌های تب‌های ناوبری */
+        .navbar-nav .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+        }
+
+        .navbar-nav .nav-link.active {
+            color: white;
+            background-color: rgba(255,255,255,0.1);
+        }
+
+        .navbar-nav .nav-link:hover {
+            color: white;
+        }
+
+        /* استایل‌های زمان‌بندی */
+        .timeline-item {
+            position: relative;
+            padding-left: 40px;
+            margin-bottom: 20px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 8px;
+            top: 0;
+            height: 100%;
+            width: 2px;
+            background-color: #dee2e6;
+        }
+
+        .timeline-item:last-child::before {
+            height: 20px;
+        }
+
+        .timeline-dot {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            border: 3px solid white;
+            box-shadow: 0 0 0 1px var(--border-color);
+        }
+
+        .timeline-dot.error {
+            background-color: var(--danger-color);
+        }
+
+        .timeline-dot.warn {
+            background-color: var(--warning-color);
+        }
+
+        .timeline-dot.info {
+            background-color: var(--info-color);
+        }
+
+        .timeline-dot.debug {
+            background-color: var(--text-color);
+        }
+
+        .timeline-content {
+            background-color: white;
+            padding: 15px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid var(--border-color);
+        }
+
+        .timeline-time {
+            color: #6c757d;
+            font-size: 0.85rem;
+            margin-bottom: 5px;
+        }
+
+        .timeline-source {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                position: static;
+                height: auto;
+                margin-bottom: 20px;
+            }
+            
+            .log-body {
+                max-height: 500px;
+            }
         }
     </style>
 </head>
+
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>داشبورد لاگینگ پیک‌سند</h1>
-            <div id="connection-status">وضعیت اتصال: در حال اتصال...</div>
+    <!-- نوار بالایی -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-journal-text me-2"></i>
+                داشبورد لاگ‌ها | پیک‌سند
+            </a>
+            <ul class="navbar-nav d-flex flex-row">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#" data-view="logs">
+                        <i class="bi bi-list-ul me-1"></i>
+                        لاگ‌ها
+                    </a>
+                </li>
+                <li class="nav-item ms-3">
+                    <a class="nav-link" href="#" data-view="analytics">
+                        <i class="bi bi-graph-up me-1"></i>
+                        تحلیل
+                    </a>
+                </li>
+                <li class="nav-item ms-3">
+                    <a class="nav-link" href="#" data-view="timeline">
+                        <i class="bi bi-clock-history me-1"></i>
+                        زمان‌بندی
+                    </a>
+                </li>
+            </ul>
+            <div class="ms-auto d-flex align-items-center text-white">
+                <div class="connection-status">
+                    <span class="status-dot status-connected" id="status-dot"></span>
+                    <span id="status-text">متصل</span>
+                </div>
+            </div>
         </div>
-        
-        <div class="logs" id="logs-container">
-            <div style="text-align: center; padding: 20px;">
-                در حال بارگذاری لاگ‌ها...
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <div class="row" id="logs-view">
+            <!-- سایدبار فیلترها -->
+            <div class="col-md-3">
+                <div class="sidebar">
+                    <!-- آمار کلی -->
+                    <h5 class="mb-3">آمار کلی</h5>
+                    <div class="row g-2 mb-4">
+                        <div class="col-6">
+                            <div class="stat-card text-center">
+                                <div class="stat-label">کل لاگ‌ها</div>
+                                <div class="stat-value" id="total-logs">0</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="stat-card text-center">
+                                <div class="stat-label">خطاها</div>
+                                <div class="stat-value text-danger" id="error-count">0</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- جستجو -->
+                    <div class="filter-section">
+                        <div class="filter-title">
+                            <i class="bi bi-search"></i>
+                            جستجو
+                        </div>
+                        <div class="search-container">
+                            <input type="text" class="form-control" id="search-input" placeholder="جستجو در لاگ‌ها...">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </div>
+                    
+                    <!-- فیلتر سطح -->
+                    <div class="filter-section">
+                        <div class="filter-title">
+                            <i class="bi bi-funnel"></i>
+                            سطح لاگ
+                        </div>
+                        <div>
+                            <button class="btn btn-sm btn-outline-secondary btn-filter active" data-level="error">
+                                خطا
+                                <span class="badge bg-danger ms-1" id="filter-error-count">0</span>
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary btn-filter active" data-level="warn">
+                                هشدار
+                                <span class="badge bg-warning text-dark ms-1" id="filter-warn-count">0</span>
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary btn-filter active" data-level="info">
+                                اطلاعات
+                                <span class="badge bg-info text-dark ms-1" id="filter-info-count">0</span>
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary btn-filter active" data-level="debug">
+                                دیباگ
+                                <span class="badge bg-secondary ms-1" id="filter-debug-count">0</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- فیلتر سرویس -->
+                    <div class="filter-section">
+                        <div class="filter-title">
+                            <i class="bi bi-diagram-3"></i>
+                            سرویس
+                        </div>
+                        <select class="form-select" id="service-filter">
+                            <option value="">همه سرویس‌ها</option>
+                            <!-- به صورت داینامیک پر می‌شود -->
+                        </select>
+                    </div>
+                    
+                    <!-- فیلتر زمانی -->
+                    <div class="filter-section">
+                        <div class="filter-title">
+                            <i class="bi bi-clock"></i>
+                            بازه زمانی
+                        </div>
+                        <select class="form-select" id="time-range-filter">
+                            <option value="30m">30 دقیقه گذشته</option>
+                            <option value="1h">1 ساعت گذشته</option>
+                            <option value="6h">6 ساعت گذشته</option>
+                            <option value="12h">12 ساعت گذشته</option>
+                            <option value="24h" selected>24 ساعت گذشته</option>
+                            <option value="3d">3 روز گذشته</option>
+                            <option value="7d">7 روز گذشته</option>
+                        </select>
+                    </div>
+
+
+                    <!-- دکمه‌های عملیات -->
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary" id="refresh-btn">
+                            <i class="bi bi-arrow-clockwise me-1"></i>
+                            بروزرسانی
+                        </button>
+                        <button class="btn btn-outline-primary" id="live-update-btn">
+                            <i class="bi bi-broadcast me-1"></i>
+                            <span id="live-text">بروزرسانی زنده (فعال)</span>
+                        </button>
+                        <button class="btn btn-outline-success" id="export-btn">
+                            <i class="bi bi-download me-1"></i>
+                            خروجی JSON
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- محتوای اصلی -->
+            <div class="col-md-9">
+                <div class="log-container">
+                    <div class="log-header">
+                        <h5 class="m-0">لاگ‌های سیستم</h5>
+                        <div>
+                            <span id="filtered-count" class="badge bg-primary">0</span>
+                            لاگ نمایش داده شده
+                        </div>
+                    </div>
+                    <div class="log-body">
+                        <table class="table log-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 180px;">زمان</th>
+                                    <th style="width: 100px;">سطح</th>
+                                    <th style="width: 160px;">سرویس</th>
+                                    <th>پیام</th>
+                                    <th style="width: 80px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="log-table">
+                                <tr>
+                                    <td colspan="5" class="text-center py-5">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">در حال بارگذاری...</span>
+                                        </div>
+                                        <div class="mt-2">در حال بارگذاری لاگ‌ها...</div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- بخش تحلیل داده‌ها -->
+        <div id="analytics-view" class="row mt-4" style="display: none;">
+            <div class="col-12">
+                <div class="log-container mb-4">
+                    <div class="log-header">
+                        <h5 class="m-0">تحلیل روند لاگ‌ها</h5>
+                        <div>
+                            <button class="btn btn-sm btn-outline-primary" id="update-analytics-btn">
+                                <i class="bi bi-arrow-clockwise me-1"></i>
+                                بروزرسانی
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-3">
+                        <canvas id="logs-trend-chart" height="100"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="log-container mb-4">
+                    <div class="log-header">
+                        <h5 class="m-0">توزیع سطوح لاگ</h5>
+                    </div>
+                    <div class="card-body p-3">
+                        <canvas id="logs-level-chart" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="log-container mb-4">
+                    <div class="log-header">
+                        <h5 class="m-0">توزیع منابع لاگ</h5>
+                    </div>
+                    <div class="card-body p-3">
+                        <canvas id="logs-source-chart" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-12">
+                <div class="log-container">
+                    <div class="log-header">
+                        <h5 class="m-0">خطاهای اخیر</h5>
+                    </div>
+                    <div class="log-body">
+                        <table class="table log-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 180px;">زمان</th>
+                                    <th style="width: 160px;">سرویس</th>
+                                    <th>پیام خطا</th>
+                                    <th style="width: 80px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-errors-table">
+                                <tr>
+                                    <td colspan="4" class="text-center py-5">
+                                        <div class="mt-2">در حال بارگذاری...</div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- بخش زمان‌بندی -->
+        <div id="timeline-view" class="row mt-4" style="display: none;">
+            <div class="col-12">
+                <div class="log-container">
+                    <div class="log-header">
+                        <h5 class="m-0">زمان‌بندی وقایع</h5>
+                        <div>
+                            <select class="form-select form-select-sm" id="timeline-range">
+                                <option value="1h">1 ساعت اخیر</option>
+                                <option value="6h">6 ساعت اخیر</option>
+                                <option value="12h">12 ساعت اخیر</option>
+                                <option value="24h" selected>24 ساعت اخیر</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="timeline-container p-3">
+                            <div id="timeline-wrapper" style="height: 500px; overflow-y: auto;">
+                                <div id="timeline-content"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- مودال جزئیات لاگ -->
+    <div class="modal fade" id="log-detail-modal" tabindex="-1" aria-labelledby="log-detail-title" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="log-detail-title">جزئیات لاگ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <div class="fw-bold">زمان:</div>
+                            <div id="log-time"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="fw-bold">سطح:</div>
+                            <div id="log-level"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="fw-bold">سرویس:</div>
+                            <div id="log-source"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="fw-bold">پیام:</div>
+                        <div id="log-message"></div>
+                    </div>
+                    <div>
+                        <div class="fw-bold">متادیتا:</div>
+                        <pre id="log-metadata" class="bg-light p-3 rounded"></pre>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">بستن</button>
+                    <button type="button" class="btn btn-primary" id="copy-log-btn">
+                        <i class="bi bi-clipboard me-1"></i>
+                        کپی
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
     <script>
-        // اتصال به سرور
-        const socket = io();
-        const logsContainer = document.getElementById('logs-container');
-        const connectionStatus = document.getElementById('connection-status');
+        // تنظیمات اولیه
+        const apiUrl = window.location.origin;
+        let socket;
+        let logs = [];
+        let isLive = true;
         
-        // مدیریت اتصال
-        socket.on('connect', () => {
-            connectionStatus.textContent = 'وضعیت اتصال: متصل';
-            connectionStatus.style.color = 'green';
+        // فیلترهای پیش‌فرض
+        const filters = {
+            levels: ['error', 'warn', 'info', 'debug'],
+            service: '',
+            search: '',
+            timeRange: '24h'
+        };
+        
+        // آمار
+        let stats = {
+            total: 0,
+            error: 0,
+            warn: 0,
+            info: 0,
+            debug: 0
+        };
+        
+        // المان‌های DOM
+        const logTable = document.getElementById('log-table');
+        const totalLogsElement = document.getElementById('total-logs');
+        const errorCountElement = document.getElementById('error-count');
+        const filterErrorCountElement = document.getElementById('filter-error-count');
+        const filterWarnCountElement = document.getElementById('filter-warn-count');
+        const filterInfoCountElement = document.getElementById('filter-info-count');
+        const filterDebugCountElement = document.getElementById('filter-debug-count');
+        const filteredCountElement = document.getElementById('filtered-count');
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('status-text');
+        const searchInput = document.getElementById('search-input');
+        const serviceFilter = document.getElementById('service-filter');
+        const timeRangeFilter = document.getElementById('time-range-filter');
+        const refreshBtn = document.getElementById('refresh-btn');
+        const liveUpdateBtn = document.getElementById('live-update-btn');
+        const liveText = document.getElementById('live-text');
+        const exportBtn = document.getElementById('export-btn');
+        
+        // مودال
+        const logDetailModal = new bootstrap.Modal(document.getElementById('log-detail-modal'));
+        const logTime = document.getElementById('log-time');
+        const logLevel = document.getElementById('log-level');
+        const logSource = document.getElementById('log-source');
+        const logMessage = document.getElementById('log-message');
+        const logMetadata = document.getElementById('log-metadata');
+        const copyLogBtn = document.getElementById('copy-log-btn');
+        
+        // متغیرهای نمودارها
+        let trendChart = null;
+        let levelChart = null;
+        let sourceChart = null;
+
+        // نمایش محتوا بر اساس تب انتخاب شده
+        function showView(viewName) {
+            // مخفی کردن همه بخش‌ها
+            document.getElementById('logs-view').style.display = 'none';
+            document.getElementById('analytics-view').style.display = 'none';
+            document.getElementById('timeline-view').style.display = 'none';
             
-            // دریافت لاگ‌های موجود
-            fetchLogs();
-        });
+            // نمایش بخش انتخاب شده
+            document.getElementById(`${viewName}-view`).style.display = 'block';
+            
+            // تغییر کلاس active برای تب‌ها
+            document.querySelectorAll('.nav-link').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.querySelector(`.nav-link[data-view="${viewName}"]`).classList.add('active');
+            
+            // اگر بخش تحلیل انتخاب شده، نمودارها را بروز کن
+            if (viewName === 'analytics') {
+                updateAnalytics();
+            }
+            
+            // اگر بخش زمان‌بندی انتخاب شده، آن را بروز کن
+            if (viewName === 'timeline') {
+                updateTimeline();
+            }
+        }
+
+        // بروزرسانی نمودارها
+        function updateAnalytics() {
+            updateTrendChart();
+            updateLevelChart();
+            updateSourceChart();
+            updateRecentErrors();
+        }
+
+        // نمودار روند لاگ‌ها
+        function updateTrendChart() {
+            const ctx = document.getElementById('logs-trend-chart').getContext('2d');
+            
+            // جمع‌آوری داده‌ها
+            const lastHours = 24; // ساعت‌های اخیر
+            const data = {
+                error: Array(lastHours).fill(0),
+                warn: Array(lastHours).fill(0),
+                info: Array(lastHours).fill(0),
+                debug: Array(lastHours).fill(0)
+            };
+            
+            const labels = [];
+            const now = new Date();
+            
+            // ساخت برچسب‌های ساعت
+            for (let i = lastHours - 1; i >= 0; i--) {
+                const time = new Date(now);
+                time.setHours(now.getHours() - i);
+                time.setMinutes(0, 0, 0);
+                labels.push(time);
+            }
+            
+            // محاسبه تعداد لاگ‌ها در هر ساعت
+            logs.forEach(log => {
+                const logTime = new Date(log.timestamp);
+                const hourDiff = Math.floor((now - logTime) / 1000 / 60 / 60);
+                
+                if (hourDiff >= 0 && hourDiff < lastHours) {
+                    const index = lastHours - 1 - hourDiff;
+                    if (data[log.level]) {
+                        data[log.level][index]++;
+                    }
+                }
+            });
+            
+            // نابود کردن نمودار قبلی اگر وجود دارد
+            if (trendChart) {
+                trendChart.destroy();
+            }
+            
+            // ایجاد نمودار جدید
+            trendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'خطا',
+                            data: data.error,
+                            borderColor: '#dc3545',
+                            backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                            tension: 0.3,
+                            fill: true
+                        },
+                        {
+                            label: 'هشدار',
+                            data: data.warn,
+                            borderColor: '#ffc107',
+                            backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                            tension: 0.3,
+                            fill: true
+                        },
+                        {
+                            label: 'اطلاعات',
+                            data: data.info,
+                            borderColor: '#0dcaf0',
+                            backgroundColor: 'rgba(13, 202, 240, 0.1)',
+                            tension: 0.3,
+                            fill: true
+                        },
+                        {
+                            label: 'دیباگ',
+                            data: data.debug,
+                            borderColor: '#6c757d',
+                            backgroundColor: 'rgba(108, 117, 125, 0.1)',
+                            tension: 0.3,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'hour',
+                                displayFormats: {
+                                    hour: 'HH:mm'
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'زمان'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'تعداد لاگ'
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                boxWidth: 12
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+
+        // نمودار توزیع سطوح لاگ
+        function updateLevelChart() {
+            const ctx = document.getElementById('logs-level-chart').getContext('2d');
+            
+            // جمع‌آوری داده‌ها
+            const data = [stats.error, stats.warn, stats.info, stats.debug];
+            
+            // نابود کردن نمودار قبلی اگر وجود دارد
+            if (levelChart) {
+                levelChart.destroy();
+            }
+            
+            // ایجاد نمودار جدید
+            levelChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['خطا', 'هشدار', 'اطلاعات', 'دیباگ'],
+                    datasets: [{
+                        data: data,
+                        backgroundColor: [
+                            '#dc3545',
+                            '#ffc107',
+                            '#0dcaf0',
+                            '#6c757d'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // نمودار توزیع منابع لاگ
+        function updateSourceChart() {
+            const ctx = document.getElementById('logs-source-chart').getContext('2d');
+            
+            // جمع‌آوری داده‌ها
+            const sources = {};
+            logs.forEach(log => {
+                const source = log.source || 'unknown';
+                if (!sources[source]) {
+                    sources[source] = 0;
+                }
+                sources[source]++;
+            });
+            
+            const labels = Object.keys(sources);
+            const data = Object.values(sources);
+            
+            // رنگ‌های پویا برای منابع مختلف
+            const backgroundColors = labels.map((_, i) => {
+                const hue = (i * 137) % 360; // ایجاد رنگ‌های متنوع
+                return `hsl(${hue}, 70%, 60%)`;
+            });
+            
+            // نابود کردن نمودار قبلی اگر وجود دارد
+            if (sourceChart) {
+                sourceChart.destroy();
+            }
+            
+            // ایجاد نمودار جدید
+            sourceChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'تعداد لاگ',
+                        data: data,
+                        backgroundColor: backgroundColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // جدول خطاهای اخیر
+        function updateRecentErrors() {
+            const table = document.getElementById('recent-errors-table');
+            
+            // فیلتر کردن فقط خطاها
+            const errors = logs.filter(log => log.level === 'error').slice(0, 10);
+            
+            if (errors.length === 0) {
+                table.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="text-center py-5">
+                            <i class="bi bi-emoji-smile fs-3 mb-2 d-block text-success"></i>
+                            هیچ خطایی یافت نشد
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            table.innerHTML = '';
+            
+            errors.forEach(log => {
+                const row = document.createElement('tr');
+                row.className = 'log-row';
+                
+                // تبدیل timestamp به تاریخ محلی
+                const time = new Date(log.timestamp).toLocaleString('fa-IR');
+                
+                row.innerHTML = `
+                    <td><div class="small text-muted">${time}</div></td>
+                    <td><span class="badge badge-source">${log.source || 'unknown'}</span></td>
+                    <td>${log.message || ''}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="showLogDetail(${JSON.stringify(log).replace(/"/g, '&quot;')})">
+                            <i class="bi bi-info-circle"></i>
+                        </button>
+                    </td>
+                `;
+                
+                table.appendChild(row);
+            });
+        }
+
+        // بروزرسانی زمان‌بندی
+        function updateTimeline() {
+            const timelineContent = document.getElementById('timeline-content');
+            const timeRange = document.getElementById('timeline-range').value;
+            
+            // محاسبه زمان شروع براساس بازه انتخاب شده
+            const now = new Date();
+            let startTime = new Date(now);
+            
+            if (timeRange === '1h') {
+                startTime.setHours(now.getHours() - 1);
+            } else if (timeRange === '6h') {
+                startTime.setHours(now.getHours() - 6);
+            } else if (timeRange === '12h') {
+                startTime.setHours(now.getHours() - 12);
+            } else {
+                startTime.setHours(now.getHours() - 24);
+            }
+            
+            // فیلتر کردن لاگ‌ها براساس بازه زمانی
+            const timelineLogs = logs.filter(log => new Date(log.timestamp) >= startTime);
+            
+            if (timelineLogs.length === 0) {
+                timelineContent.innerHTML = `
+                    <div class="alert alert-info mt-3">
+                        هیچ لاگی در این بازه زمانی یافت نشد
+                    </div>
+                `;
+                return;
+            }
+            
+            timelineContent.innerHTML = '';
+            
+            // مرتب‌سازی بر اساس زمان (قدیمی‌ترین اول)
+            timelineLogs.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            
+            timelineLogs.forEach(log => {
+                const timelineItem = document.createElement('div');
+                timelineItem.className = 'timeline-item';
+                
+                // تبدیل timestamp به تاریخ محلی
+                const time = new Date(log.timestamp).toLocaleString('fa-IR');
+                
+                timelineItem.innerHTML = `
+                    <div class="timeline-dot ${log.level}"></div>
+                    <div class="timeline-content">
+                        <div class="timeline-time">${time}</div>
+                        <div class="timeline-source">${log.source || 'unknown'}</div>
+                        <div class="timeline-message">${log.message || ''}</div>
+                    </div>
+                `;
+                
+                timelineContent.appendChild(timelineItem);
+            });
+        }
+
+        // اتصال به سرور
+        function connectSocket() {
+            try {
+                socket = io(apiUrl);
+                
+                socket.on('connect', () => {
+                    console.log('اتصال به سرور برقرار شد');
+                    updateConnectionStatus(true);
+                    fetchLogs();
+                });
+                
+                socket.on('disconnect', () => {
+                    console.log('اتصال به سرور قطع شد');
+                    updateConnectionStatus(false);
+                });
+                
+                socket.on('log', (log) => {
+                    if (isLive) {
+                        console.log('لاگ جدید دریافت شد:', log);
+                        logs.unshift(log);
+                        updateStats();
+                        applyFilters();
+                    }
+                });
+            } catch (error) {
+                console.error('خطا در اتصال به سرور:', error);
+                updateConnectionStatus(false);
+            }
+        }
         
-        socket.on('disconnect', () => {
-            connectionStatus.textContent = 'وضعیت اتصال: قطع شده';
-            connectionStatus.style.color = 'red';
-        });
+        // به‌روزرسانی وضعیت اتصال
+        function updateConnectionStatus(connected) {
+            if (connected) {
+                statusDot.className = 'status-dot status-connected';
+                statusText.textContent = 'متصل';
+                statusText.className = 'text-success';
+            } else {
+                statusDot.className = 'status-dot status-disconnected';
+                statusText.textContent = 'قطع شده';
+                statusText.className = 'text-danger';
+            }
+        }
         
-        // دریافت لاگ جدید
-        socket.on('log', (log) => {
-            addLogToDisplay(log, true);
-        });
-        
-        // دریافت لاگ‌های قبلی
+        // دریافت لاگ‌ها از سرور
         async function fetchLogs() {
             try {
-                const response = await fetch('/api/logs');
-                const data = await response.json();
+                // نمایش لودینگ
+                logTable.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">در حال بارگذاری...</span>
+                            </div>
+                            <div class="mt-2">در حال بارگذاری لاگ‌ها...</div>
+                        </td>
+                    </tr>
+                `;
                 
-                if (data.success) {
-                    logsContainer.innerHTML = '';
-                    
-                    if (data.data.length === 0) {
-                        logsContainer.innerHTML = '<div style="text-align: center; padding: 20px;">هیچ لاگی یافت نشد</div>';
-                        return;
-                    }
-                    
-                    data.data.forEach(log => {
-                        addLogToDisplay(log, false);
-                    });
+                const params = new URLSearchParams({
+                    timeRange: filters.timeRange
+                });
+                
+                if (filters.service) {
+                    params.append('source', filters.service);
+                }
+                
+                if (filters.levels.length > 0) {
+                    params.append('levels', filters.levels.join(','));
+                }
+                
+                if (filters.search) {
+                    params.append('search', filters.search);
+                }
+                
+                const response = await fetch(`${apiUrl}/api/logs?${params.toString()}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    logs = result.data;
+                    updateStats();
+                    applyFilters();
+                } else {
+                    showError('خطا در دریافت لاگ‌ها');
                 }
             } catch (error) {
                 console.error('خطا در دریافت لاگ‌ها:', error);
-                logsContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: red;">خطا در دریافت لاگ‌ها</div>';
+                showError('خطا در دریافت لاگ‌ها');
             }
         }
         
-        // افزودن لاگ به نمایش
-        function addLogToDisplay(log, prepend = false) {
-            const logEntry = document.createElement('div');
-            logEntry.className = `log-entry ${log.level}`;
-            
-            const time = new Date(log.timestamp).toLocaleString();
-            
-            logEntry.innerHTML = `
-                <div>
-                    <span class="log-badge ${log.level}">${log.level}</span>
-                    <strong>${log.source || 'unknown'}</strong>
-                    <small>${time}</small>
-                </div>
-                <div style="margin-top: 5px;">${log.message}</div>
+        // نمایش خطا در جدول
+        function showError(message) {
+            logTable.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center py-5 text-danger">
+                        <i class="bi bi-exclamation-triangle-fill fs-3 mb-3 d-block"></i>
+                        ${message}
+                    </td>
+                </tr>
             `;
+        }
+        
+        // به‌روزرسانی آمار
+        function updateStats() {
+            stats.total = logs.length;
+            stats.error = logs.filter(log => log.level === 'error').length;
+            stats.warn = logs.filter(log => log.level === 'warn').length;
+            stats.info = logs.filter(log => log.level === 'info').length;
+            stats.debug = logs.filter(log => log.level === 'debug').length;
             
-            if (prepend && logsContainer.firstChild) {
-                logsContainer.insertBefore(logEntry, logsContainer.firstChild);
+            totalLogsElement.textContent = stats.total.toLocaleString();
+            errorCountElement.textContent = stats.error.toLocaleString();
+            filterErrorCountElement.textContent = stats.error;
+            filterWarnCountElement.textContent = stats.warn;
+            filterInfoCountElement.textContent = stats.info;
+            filterDebugCountElement.textContent = stats.debug;
+        }
+        
+        // اعمال فیلترها
+        function applyFilters() {
+            const filteredLogs = logs.filter(log => {
+                // فیلتر سطح
+                if (!filters.levels.includes(log.level)) return false;
+                
+                // فیلتر سرویس
+                if (filters.service && log.source !== filters.service) return false;
+                
+                // فیلتر جستجو
+                if (filters.search) {
+                    const searchLower = filters.search.toLowerCase();
+                    const message = log.message ? log.message.toLowerCase() : '';
+                    const source = log.source ? log.source.toLowerCase() : '';
+                    
+                    if (!message.includes(searchLower) && !source.includes(searchLower)) {
+                        return false;
+                    }
+                }
+                
+                return true;
+            });
+            
+            updateLogTable(filteredLogs);
+        }
+        
+        // به‌روزرسانی جدول لاگ‌ها
+        function updateLogTable(filteredLogs) {
+            logTable.innerHTML = '';
+            filteredCountElement.textContent = filteredLogs.length;
+            
+            if (filteredLogs.length === 0) {
+                logTable.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center py-5">
+                            <i class="bi bi-search fs-3 mb-2 d-block text-muted"></i>
+                            هیچ لاگی یافت نشد
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            filteredLogs.forEach((log, index) => {
+                const row = document.createElement('tr');
+                row.className = 'log-row';
+                
+                // تبدیل timestamp به تاریخ محلی
+                const time = new Date(log.timestamp).toLocaleString('fa-IR');
+                
+                // ساخت محتوای سلول‌ها
+                const timeCell = document.createElement('td');
+                timeCell.innerHTML = `<div class="small text-muted">${time}</div>`;
+                
+                const levelCell = document.createElement('td');
+                levelCell.innerHTML = `<span class="log-level level-${log.level}">${log.level}</span>`;
+                
+                const sourceCell = document.createElement('td');
+                sourceCell.innerHTML = `<span class="badge badge-source">${log.source || 'unknown'}</span>`;
+                
+                const messageCell = document.createElement('td');
+                messageCell.textContent = log.message || '';
+                
+                const actionCell = document.createElement('td');
+                const detailButton = document.createElement('button');
+                detailButton.className = 'btn btn-sm btn-outline-secondary';
+                detailButton.innerHTML = '<i class="bi bi-info-circle"></i>';
+                detailButton.onclick = (e) => {
+                    e.stopPropagation();
+                    showLogDetail(log);
+                };
+                actionCell.appendChild(detailButton);
+                
+                // افزودن سلول‌ها به ردیف
+                row.appendChild(timeCell);
+                row.appendChild(levelCell);
+                row.appendChild(sourceCell);
+                row.appendChild(messageCell);
+                row.appendChild(actionCell);
+                
+                // افزودن رویداد کلیک به کل ردیف
+                row.addEventListener('click', () => showLogDetail(log));
+                
+                // افزودن ردیف به جدول
+                logTable.appendChild(row);
+            });
+        }
+        
+        // نمایش جزئیات لاگ
+        function showLogDetail(log) {
+            logTime.textContent = new Date(log.timestamp).toLocaleString();
+            
+            // نمایش سطح با رنگ مناسب
+            logLevel.innerHTML = `<span class="log-level level-${log.level}">${log.level}</span>`;
+            
+            logSource.textContent = log.source || 'unknown';
+            logMessage.textContent = log.message || '';
+            
+            // نمایش متادیتا
+            if (log.metadata && Object.keys(log.metadata).length > 0) {
+                logMetadata.textContent = JSON.stringify(log.metadata, null, 2);
+                logMetadata.parentElement.style.display = 'block';
             } else {
-                logsContainer.appendChild(logEntry);
+                logMetadata.textContent = 'بدون متادیتا';
+                logMetadata.parentElement.style.display = 'block';
+            }
+            
+            logDetailModal.show();
+        }
+        
+        // دریافت سرویس‌ها
+        async function fetchServices() {
+            try {
+                const response = await fetch(`${apiUrl}/api/logs/sources`);
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    // پاک کردن گزینه‌های قبلی به جز گزینه پیش‌فرض
+                    serviceFilter.innerHTML = '<option value="">همه سرویس‌ها</option>';
+                    
+                    // افزودن سرویس‌ها
+                    result.data.forEach(service => {
+                        const option = document.createElement('option');
+                        option.value = service;
+                        option.textContent = service;
+                        serviceFilter.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('خطا در دریافت سرویس‌ها:', error);
             }
         }
+        
+        // رویدادها
+        
+        // جستجو
+        searchInput.addEventListener('input', () => {
+            filters.search = searchInput.value.trim();
+            applyFilters();
+        });
+        
+        // فیلتر سرویس
+        serviceFilter.addEventListener('change', () => {
+            filters.service = serviceFilter.value;
+            applyFilters();
+        });
+        
+        // فیلتر بازه زمانی
+        timeRangeFilter.addEventListener('change', () => {
+            filters.timeRange = timeRangeFilter.value;
+            fetchLogs();
+        });
+        
+        // رویداد کلیک دکمه‌های فیلتر سطح
+        document.querySelectorAll('.btn-filter').forEach(button => {
+            button.addEventListener('click', () => {
+                const level = button.getAttribute('data-level');
+                
+                // تغییر وضعیت نمایشی دکمه
+                button.classList.toggle('active');
+                
+                if (button.classList.contains('active')) {
+                    // اضافه کردن به فیلترها
+                    if (!filters.levels.includes(level)) {
+                        filters.levels.push(level);
+                    }
+                } else {
+                    // حذف از فیلترها
+                    filters.levels = filters.levels.filter(l => l !== level);
+                }
+                
+                applyFilters();
+            });
+        });
+        
+        // دکمه بروزرسانی
+        refreshBtn.addEventListener('click', fetchLogs);
+        
+        // دکمه بروزرسانی زنده
+        liveUpdateBtn.addEventListener('click', () => {
+            isLive = !isLive;
+            
+            if (isLive) {
+                liveText.textContent = 'بروزرسانی زنده (فعال)';
+                liveUpdateBtn.classList.remove('btn-outline-secondary');
+                liveUpdateBtn.classList.add('btn-outline-primary');
+            } else {
+                liveText.textContent = 'بروزرسانی زنده (غیرفعال)';
+                liveUpdateBtn.classList.remove('btn-outline-primary');
+                liveUpdateBtn.classList.add('btn-outline-secondary');
+            }
+        });
+        
+        // دکمه خروجی
+        exportBtn.addEventListener('click', async () => {
+            try {
+                const params = new URLSearchParams({
+                    timeRange: filters.timeRange
+                });
+                
+                if (filters.service) {
+                    params.append('source', filters.service);
+                }
+                
+                if (filters.levels.length > 0) {
+                    params.append('levels', filters.levels.join(','));
+                }
+                
+                if (filters.search) {
+                    params.append('search', filters.search);
+                }
+                
+                // ایجاد لینک دانلود
+                const a = document.createElement('a');
+                a.href = `${apiUrl}/api/logs/export?${params.toString()}`;
+                a.download = `logs-${new Date().toISOString().split('.')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            } catch (error) {
+                console.error('خطا در دریافت خروجی:', error);
+                alert('خطا در دریافت خروجی');
+            }
+        });
+        
+        // دکمه کپی لاگ
+        copyLogBtn.addEventListener('click', () => {
+            const text = logMetadata.textContent;
+            
+            navigator.clipboard.writeText(text)
+                .then(() => {
+                    // تغییر موقت متن دکمه
+                    const originalText = copyLogBtn.innerHTML;
+                    copyLogBtn.innerHTML = '<i class="bi bi-check2 me-1"></i> کپی شد';
+                    
+                    setTimeout(() => {
+                        copyLogBtn.innerHTML = originalText;
+                    }, 2000);
+                })
+                .catch(err => {
+                    console.error('خطا در کپی کردن:', err);
+                    alert('خطا در کپی کردن متن');
+                });
+        });
+        
+        // راه‌اندازی اولیه
+        document.addEventListener('DOMContentLoaded', () => {
+            // اضافه کردن رویدادهای تب
+            document.querySelectorAll('.nav-link').forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const viewName = tab.getAttribute('data-view');
+                    showView(viewName);
+                });
+            });
+            
+            // رویداد تغییر بازه زمان‌بندی
+            document.getElementById('timeline-range').addEventListener('change', updateTimeline);
+            
+            // رویداد بروزرسانی تحلیل‌ها
+            document.getElementById('update-analytics-btn').addEventListener('click', updateAnalytics);
+            
+            // اتصال به سرور و دریافت داده‌ها
+            // اتصال به سرور و دریافت داده‌ها
+            connectSocket();
+            fetchServices();
+            
+            // اضافه کردن عنصر نمای لاگ‌ها (اگر هنوز وجود ندارد)
+            const mainContent = document.querySelector('.col-md-9').parentNode;
+            if (!document.getElementById('logs-view')) {
+                mainContent.id = 'logs-view';
+            }
+        });
+        
+        // تابع برای نمایش جزئیات لاگ از تابع‌های دیگر
+        window.showLogDetail = function(log) {
+            // اگر log یک رشته است، آن را پارس کن
+            if (typeof log === 'string') {
+                try {
+                    log = JSON.parse(log);
+                } catch (error) {
+                    console.error('خطا در پارس کردن لاگ:', error);
+                    return;
+                }
+            }
+            
+            logTime.textContent = new Date(log.timestamp).toLocaleString();
+            
+            // نمایش سطح با رنگ مناسب
+            logLevel.innerHTML = `<span class="log-level level-${log.level}">${log.level}</span>`;
+            
+            logSource.textContent = log.source || 'unknown';
+            logMessage.textContent = log.message || '';
+            
+            // نمایش متادیتا
+            if (log.metadata && Object.keys(log.metadata).length > 0) {
+                logMetadata.textContent = JSON.stringify(log.metadata, null, 2);
+                logMetadata.parentElement.style.display = 'block';
+            } else {
+                logMetadata.textContent = 'بدون متادیتا';
+                logMetadata.parentElement.style.display = 'block';
+            }
+            
+            logDetailModal.show();
+        };
     </script>
 </body>
 </html>
