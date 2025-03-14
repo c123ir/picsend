@@ -1,9 +1,13 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import path from 'path';
 import sequelize from './config/database';
 import userRoutes from './routes/userRoutes';
 import authRoutes from './routes/authRoutes';
+import Logger from './utils/logger';
 
 process.on('uncaughtException', (error) => {
   console.error('خطای پیش‌بینی نشده:', error);
@@ -23,56 +27,60 @@ const port = process.env.PORT || 3010;
 // تنظیمات CORS
 app.use(cors({
   origin: ['http://localhost:3005', 'http://localhost:3006'],
-  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }));
 
 app.use(express.json());
 
-console.log('در حال اتصال به پایگاه داده...');
+// مسیرها
+app.use('/users', userRoutes);
+app.use('/auth', authRoutes);
 
-// اتصال به پایگاه داده
-sequelize.authenticate()
-  .then(() => {
-    console.log('اتصال به پایگاه داده برقرار شد');
+const execAsync = promisify(exec);
 
-    // مسیرها
-    app.use('/api/users', userRoutes);
-    app.use('/api/auth', authRoutes);
-
-    // مدیریت خطاها
-    app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-      console.error('خطای سرور:', err);
+// تابع بررسی و راه‌اندازی MySQL
+async function setupMySQL() {
+  try {
+    await sequelize.authenticate();
+    Logger.info('اتصال به MySQL موفقیت‌آمیز بود');
+  } catch (error) {
+    Logger.warn('خطا در اتصال به MySQL. تلاش برای راه‌اندازی...');
+    
+    try {
+      const setupScript = path.join(__dirname, '../scripts/setup-mysql.sh');
+      const { stdout, stderr } = await execAsync(`bash ${setupScript}`);
       
-      // ارسال لاگ به سرور لاگر
-      fetch(process.env.LOGGING_SERVER_URL + '/logs', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          level: 'error',
-          message: err.message,
-          stack: err.stack,
-          timestamp: new Date().toISOString()
-        })
-      }).catch(logErr => {
-        console.error('خطا در ارسال لاگ:', logErr);
-      });
+      if (stderr) {
+        Logger.error('خطا در راه‌اندازی MySQL:', { error: stderr });
+        throw new Error(stderr);
+      }
+      
+      Logger.info('خروجی راه‌اندازی MySQL:', { output: stdout });
+      
+      // تلاش مجدد برای اتصال
+      await sequelize.authenticate();
+      Logger.info('MySQL با موفقیت راه‌اندازی و متصل شد');
+    } catch (setupError) {
+      Logger.error('خطا در راه‌اندازی MySQL:', { error: setupError });
+      throw setupError;
+    }
+  }
+}
 
-      res.status(500).json({ message: 'خطای سرور', error: err.message });
-    });
-
-    // شروع به کار سرور
+// راه‌اندازی سرور
+async function startServer() {
+  try {
+    await setupMySQL();
+    
     app.listen(port, () => {
-      console.log(`سرور در پورت ${port} در حال اجراست`);
-    }).on('error', (error) => {
-      console.error('خطا در راه‌اندازی سرور:', error);
-      process.exit(1);
+      Logger.info(`سرور در پورت ${port} در حال اجراست`);
     });
-  })
-  .catch(err => {
-    console.error('خطا در اتصال به پایگاه داده:', err);
+  } catch (error) {
+    Logger.error('خطا در راه‌اندازی سرور:', { error });
     process.exit(1);
-  }); 
+  }
+}
+
+startServer(); 
