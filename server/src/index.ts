@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { exec } from 'child_process';
@@ -12,6 +12,10 @@ import groupRoutes from './routes/groupRoutes';
 import { syncModels } from './models';
 import { loggingClient } from './utils/logging-client';
 import loggerMiddleware from './middleware/logger';
+
+interface ServerError extends Error {
+  status?: number;
+}
 
 process.on('uncaughtException', (error) => {
   console.error('خطای پیش‌بینی نشده:', error);
@@ -54,13 +58,13 @@ app.use('/api/images', imageRoutes);
 app.use('/api/groups', groupRoutes);
 
 // میدل‌ور مدیریت خطاها
-app.use((err, req, res, next) => {
+app.use((err: ServerError, req: Request, res: Response, next: NextFunction) => {
   loggingClient.error('خطای سرور', {
     error: err.message,
     stack: err.stack,
     url: req.originalUrl,
     method: req.method,
-    userId: req.user?.id || 'anonymous'
+    userId: (req as any).user?.id || 'anonymous'
   });
   
   res.status(err.status || 500).json({
@@ -82,7 +86,7 @@ async function setupMySQL() {
     // همگام‌سازی مدل‌ها با دیتابیس
     await syncModels();
     
-  } catch (error) {
+  } catch (error: any) {
     loggingClient.warn('خطا در اتصال به MySQL. تلاش برای راه‌اندازی...', { 
       error: error.message,
       action: 'mysql_connection_failed'
@@ -114,7 +118,7 @@ async function setupMySQL() {
       loggingClient.info('MySQL با موفقیت راه‌اندازی و متصل شد', {
         action: 'mysql_setup_success'
       });
-    } catch (setupError) {
+    } catch (setupError: any) {
       loggingClient.error('خطا در راه‌اندازی MySQL:', { 
         error: setupError instanceof Error ? setupError.message : String(setupError),
         action: 'mysql_setup_failed'
@@ -133,7 +137,7 @@ async function createUploadDirs() {
       dir: uploadDir,
       action: 'create_upload_dir'
     });
-  } catch (error) {
+  } catch (error: any) {
     loggingClient.error('خطا در ایجاد دایرکتوری آپلود', {
       error: error instanceof Error ? error.message : String(error),
       action: 'create_upload_dir_error'
@@ -163,7 +167,7 @@ async function startServer() {
       console.log(`📝 محیط: ${process.env.NODE_ENV}`);
       console.log(`🌐 آدرس: http://localhost:${port}`);
     });
-  } catch (error) {
+  } catch (error: any) {
     loggingClient.error('خطا در راه‌اندازی سرور:', { 
       error: error instanceof Error ? error.message : String(error),
       action: 'server_start_error'

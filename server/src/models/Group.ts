@@ -1,106 +1,141 @@
-import { Model, DataTypes } from 'sequelize';
-import sequelize from '../config/database';
+import { Model, DataTypes, Optional } from 'sequelize';
+import sequelize from '../database/connection';
 import { loggingClient } from '../utils/logging-client';
 import User from './User';
 
+// تعریف اینترفیس برای مدل گروه
 interface IGroup {
-  id?: number;
+  id: number;
   name: string;
-  description?: string;
-  ownerId: number;
+  description: string | null;
+  creatorId: number;
   isActive: boolean;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-class Group extends Model<IGroup> implements IGroup {
+// تعریف اتریبیوت‌های اختیاری برای ایجاد گروه
+type GroupCreationAttributes = Optional<IGroup, 'id' | 'isActive' | 'createdAt' | 'updatedAt'>;
+
+class Group extends Model<IGroup, GroupCreationAttributes> implements IGroup {
   public id!: number;
   public name!: string;
-  public description!: string;
-  public ownerId!: number;
+  public description!: string | null;
+  public creatorId!: number;
   public isActive!: boolean;
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+  public createdAt!: Date;
+  public updatedAt!: Date;
 }
 
-Group.init({
-  id: {
-    type: DataTypes.INTEGER,
-    autoIncrement: true,
-    primaryKey: true,
-  },
-  name: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  description: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-  },
-  ownerId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: 'Users',
-      key: 'id'
-    }
-  },
-  isActive: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: true,
-  },
-}, {
-  sequelize,
-  modelName: 'Group',
-  tableName: 'Groups',
-  timestamps: true,
-  hooks: {
-    beforeCreate: async (group: Group) => {
-      loggingClient.info('آماده‌سازی ایجاد گروه جدید', {
-        groupName: group.name,
-        ownerId: group.ownerId,
-        action: 'group_create_prepare'
-      });
+Group.init(
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
+      primaryKey: true,
     },
-    afterCreate: async (group: Group) => {
-      loggingClient.info('گروه جدید ایجاد شد', {
-        groupId: group.id,
-        groupName: group.name,
-        ownerId: group.ownerId,
-        action: 'group_created'
-      });
+    name: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
     },
-    beforeUpdate: async (group: Group) => {
-      loggingClient.info('آماده‌سازی به‌روزرسانی گروه', {
-        groupId: group.id,
-        changedFields: group.changed(),
-        action: 'group_update_prepare'
-      });
+    description: {
+      type: DataTypes.TEXT,
+      allowNull: true,
     },
-    afterUpdate: async (group: Group) => {
-      loggingClient.info('اطلاعات گروه به‌روزرسانی شد', {
-        groupId: group.id,
-        action: 'group_updated'
-      });
+    creatorId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'Users',
+        key: 'id',
+      },
+      onDelete: 'CASCADE',
     },
-    beforeDestroy: async (group: Group) => {
-      loggingClient.warn('آماده‌سازی برای حذف گروه', {
-        groupId: group.id,
-        groupName: group.name,
-        action: 'group_delete_prepare'
-      });
+    isActive: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
     },
-    afterDestroy: async (group: Group) => {
-      loggingClient.warn('گروه حذف شد', {
-        groupId: group.id,
-        groupName: group.name,
-        action: 'group_deleted'
-      });
-    }
+    createdAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW,
+    },
+    updatedAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW,
+    },
+  },
+  {
+    sequelize,
+    tableName: 'UserGroups',
+    hooks: {
+      beforeCreate: async (group) => {
+        loggingClient.info({
+          message: 'در حال ایجاد گروه جدید',
+          data: {
+            name: group.name,
+            creatorId: group.creatorId,
+          },
+          action: 'create_group',
+        });
+      },
+      afterCreate: async (group) => {
+        loggingClient.info({
+          message: 'گروه با موفقیت ایجاد شد',
+          data: {
+            id: group.id,
+            name: group.name,
+            creatorId: group.creatorId,
+          },
+          action: 'group_created',
+        });
+      },
+      beforeUpdate: async (group) => {
+        loggingClient.info({
+          message: 'در حال به‌روزرسانی گروه',
+          data: {
+            id: group.id,
+            name: group.name,
+          },
+          action: 'update_group',
+        });
+      },
+      afterUpdate: async (group) => {
+        loggingClient.info({
+          message: 'گروه با موفقیت به‌روزرسانی شد',
+          data: {
+            id: group.id,
+            name: group.name,
+          },
+          action: 'group_updated',
+        });
+      },
+      beforeDestroy: async (group) => {
+        loggingClient.info({
+          message: 'در حال حذف گروه',
+          data: {
+            id: group.id,
+            name: group.name,
+          },
+          action: 'delete_group',
+        });
+      },
+      afterDestroy: async (group) => {
+        loggingClient.info({
+          message: 'گروه با موفقیت حذف شد',
+          data: {
+            id: group.id,
+          },
+          action: 'group_deleted',
+        });
+      },
+    },
   }
-});
+);
 
 // ارتباط با کاربر مالک گروه
-Group.belongsTo(User, { foreignKey: 'ownerId', as: 'owner' });
+Group.belongsTo(User, { foreignKey: 'creatorId', as: 'creator' });
 
 export default Group; 

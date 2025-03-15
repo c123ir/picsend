@@ -1,12 +1,12 @@
-import express from 'express';
+import { Router } from 'express';
 import AuthController from '../controllers/authController';
-import { authMiddleware } from '../middleware/auth';
+import { authenticate } from '../middleware/authMiddleware';
 import { loggingClient } from '../utils/logging-client';
 
-const router = express.Router();
+const router = Router();
 const authController = new AuthController();
 
-// مسیرهای احراز هویت
+// مسیرهای عمومی (بدون نیاز به احراز هویت)
 router.post('/login', authController.login);
 router.post('/register', authController.register);
 router.post('/forgot-password', authController.forgotPassword);
@@ -15,10 +15,9 @@ router.post('/verify-email', authController.verifyEmail);
 router.post('/verify-phone', authController.verifyPhone);
 router.post('/request-verification', authController.requestVerification);
 
-// مسیرهای نیازمند احراز هویت
-router.post('/logout', authMiddleware, authController.logout);
-router.get('/refresh-token', authMiddleware, authController.refreshToken);
-router.get('/verify-token', authMiddleware, authController.verifyToken);
+// مسیرهای با احراز هویت
+router.get('/refresh-token', authenticate, authController.refreshToken);
+router.get('/verify-token', authenticate, authController.verifyToken);
 
 // لاگ کردن درخواست‌های احراز هویت
 router.use((req, res, next) => {

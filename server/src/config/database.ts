@@ -3,7 +3,7 @@ import { loggingClient } from '../utils/logging-client';
 
 const DB_NAME = process.env.DB_NAME || 'picsend';
 const DB_USER = process.env.DB_USER || 'root';
-const DB_PASSWORD = process.env.DB_PASSWORD || '';
+const DB_PASSWORD = process.env.DB_PASSWORD || '123';
 const DB_HOST = process.env.DB_HOST || 'localhost';
 const DB_PORT = process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 3306;
 
@@ -17,21 +17,13 @@ const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASSWORD, {
     acquire: 30000,
     idle: 10000
   },
-  logging: (sql, timing) => {
-    // ثبت لاگ کوئری‌ها فقط در محیط توسعه
-    if (process.env.NODE_ENV === 'development' && process.env.LOG_QUERIES === 'true') {
-      loggingClient.debug('کوئری SQL', { 
-        sql: sql.substring(0, 500), // محدود کردن طول کوئری در لاگ
-        execTime: `${timing}ms`,
-        type: 'database_query'
-      });
-    }
-  },
+  logging: process.env.NODE_ENV === 'development' ? customLogger : false,
   benchmark: true, // فعال کردن اندازه‌گیری زمان اجرای کوئری‌ها
   define: {
     charset: 'utf8mb4',
     collate: 'utf8mb4_unicode_ci',
-    timestamps: true
+    timestamps: true,
+    underscored: false
   }
 });
 
@@ -82,4 +74,24 @@ sequelize.query = function (...args: any[]) {
     });
 };
 
-export default sequelize; 
+export default sequelize;
+
+export const dbConfig = {
+  database: process.env.DB_NAME || 'picsend',
+  username: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '123',
+  host: process.env.DB_HOST || 'localhost',
+  port: parseInt(process.env.DB_PORT || '3306', 10),
+  dialect: 'mysql',
+  logging: process.env.NODE_ENV === 'development' ? customLogger : false,
+  pool: {
+    max: 10,
+    min: 0,
+    acquire: 30000,
+    idle: 10000
+  },
+  define: {
+    timestamps: true,
+    underscored: false
+  }
+}; 

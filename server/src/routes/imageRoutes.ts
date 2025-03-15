@@ -1,30 +1,46 @@
-import express from 'express';
-import { authMiddleware } from '../middleware/auth';
-import { adminMiddleware } from '../middleware/admin';
+import { Router } from 'express';
 import ImageController from '../controllers/imageController';
+import { authenticate } from '../middleware/authMiddleware';
+import { isAdmin } from '../middleware/roleMiddleware';
 import multer from 'multer';
 import path from 'path';
+import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { loggingClient } from '../utils/logging-client';
 
-const router = express.Router();
+const router = Router();
 const imageController = new ImageController();
 
-// تنظیمات آپلود فایل
+// تنظیمات آپلود تصویر
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, '../../uploads');
-    cb(null, uploadDir);
+    
+    // اطمینان از وجود دایرکتوری آپلود
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    
+    // ایجاد دایرکتوری برای کاربر
+    const userId = (req as any).user?.id;
+    const userDir = path.join(uploadDir, `user_${userId}`);
+    
+    if (!fs.existsSync(userDir)) {
+      fs.mkdirSync(userDir, { recursive: true });
+    }
+    
+    cb(null, userDir);
   },
   filename: (req, file, cb) => {
-    const uniquePrefix = `${Date.now()}-${uuidv4()}`;
-    cb(null, `${uniquePrefix}-${file.originalname}`);
+    // ایجاد نام فایل منحصر به فرد
+    const uniqueFilename = `${uuidv4()}${path.extname(file.originalname)}`;
+    cb(null, uniqueFilename);
   }
 });
 
 // فیلتر فایل‌های مجاز
-const fileFilter = (req, file, cb) => {
-  const allowedTypes = (process.env.ALLOWED_FILE_TYPES || 'image/jpeg,image/png,image/gif,image/webp').split(',');
+const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  const allowedTypes = (process.env.ALLOWED_FILE_TYPES || 'image/jpeg,image/png,image/gif').split(',');
   
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
@@ -35,7 +51,7 @@ const fileFilter = (req, file, cb) => {
       userId: req.user?.id,
       action: 'upload_invalid_file'
     });
-    cb(new Error('نوع فایل پشتیبانی نمی‌شود. فقط تصاویر مجاز هستند.'));
+    cb(new Error('فرمت فایل پشتیبانی نمی‌شود'));
   }
 };
 
@@ -44,7 +60,7 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: parseInt(process.env.MAX_FILE_SIZE || '5000000'), // 5MB پیش‌فرض
+    fileSize: parseInt(process.env.MAX_FILE_SIZE || '5242880', 10) // 5MB پیش‌فرض
   }
 });
 
@@ -53,23 +69,20 @@ router.get('/public', imageController.getPublicImages);
 router.get('/public/:id', imageController.getPublicImage);
 
 // مسیرهای با احراز هویت
-router.use(authMiddleware);
+router.get('/my', authenticate, imageController.getMyImages);
+router.post('/', authenticate, upload.single('image'), imageController.uploadImage);
+router.get('/:id', authenticate, imageController.getImage);
+router.put('/:id', authenticate, imageController.updateImage);
+router.delete('/:id', authenticate, imageController.deleteImage);
 
-// عملیات‌های تصویر
-router.get('/', imageController.getMyImages);
-router.post('/', upload.single('image'), imageController.uploadImage);
-router.get('/:id', imageController.getImage);
-router.put('/:id', imageController.updateImage);
-router.delete('/:id', imageController.deleteImage);
+// مسیرهای اشتراک‌گذاری
+router.post('/:id/share', authenticate, imageController.shareImage);
+router.get('/:id/shares', authenticate, imageController.getImageShares);
+router.delete('/:id/shares/:shareId', authenticate, imageController.removeImageShare);
 
-// اشتراک‌گذاری تصاویر
-router.post('/:id/share', imageController.shareImage);
-router.get('/:id/shares', imageController.getImageShares);
-router.delete('/:id/shares/:shareId', imageController.removeImageShare);
-
-// مسیرهای مدیریتی
-router.get('/admin/all', adminMiddleware, imageController.getAllImages);
-router.delete('/admin/:id', adminMiddleware, imageController.adminDeleteImage);
+// مسیرهای مدیریتی (فقط برای ادمین)
+router.get('/admin/all', authenticate, isAdmin, imageController.getAllImages);
+router.delete('/admin/:id', authenticate, isAdmin, imageController.adminDeleteImage);
 
 // میدل‌ور لاگ کردن درخواست‌های تصویر
 router.use((req, res, next) => {

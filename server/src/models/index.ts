@@ -10,28 +10,26 @@ import { loggingClient } from '../utils/logging-client';
 // ارتباطات کاربر
 User.hasMany(Group, { foreignKey: 'ownerId', as: 'ownedGroups' });
 User.hasMany(GroupMember, { foreignKey: 'userId', as: 'groupMemberships' });
-User.hasMany(Image, { foreignKey: 'ownerId', as: 'images' });
-User.hasMany(ImageShare, { foreignKey: 'sharedBy', as: 'sharedImages' });
-User.hasMany(ImageShare, { foreignKey: 'sharedWith', as: 'receivedShares' });
+User.hasMany(Image, { foreignKey: 'userId', as: 'images' });
+User.hasMany(ImageShare, { foreignKey: 'sharedWithUserId', as: 'receivedShares' });
 
 // ارتباطات گروه
 Group.belongsTo(User, { foreignKey: 'ownerId', as: 'owner' });
 Group.hasMany(GroupMember, { foreignKey: 'groupId', as: 'members' });
-Group.hasMany(ImageShare, { foreignKey: 'sharedWithGroup', as: 'shares' });
+Group.hasMany(ImageShare, { foreignKey: 'sharedWithGroupId', as: 'shares' });
 
 // ارتباطات عضو گروه
 GroupMember.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 GroupMember.belongsTo(Group, { foreignKey: 'groupId', as: 'group' });
 
 // ارتباطات تصویر
-Image.belongsTo(User, { foreignKey: 'ownerId', as: 'owner' });
+Image.belongsTo(User, { foreignKey: 'userId', as: 'owner' });
 Image.hasMany(ImageShare, { foreignKey: 'imageId', as: 'shares' });
 
 // ارتباطات اشتراک تصویر
 ImageShare.belongsTo(Image, { foreignKey: 'imageId', as: 'image' });
-ImageShare.belongsTo(User, { foreignKey: 'sharedBy', as: 'owner' });
-ImageShare.belongsTo(User, { foreignKey: 'sharedWith', as: 'recipient' });
-ImageShare.belongsTo(Group, { foreignKey: 'sharedWithGroup', as: 'group' });
+ImageShare.belongsTo(User, { foreignKey: 'sharedWithUserId', as: 'recipient' });
+ImageShare.belongsTo(Group, { foreignKey: 'sharedWithGroupId', as: 'group' });
 
 // تابع همگام‌سازی مدل‌ها با دیتابیس
 export async function syncModels() {

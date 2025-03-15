@@ -8,12 +8,13 @@ NC='\033[0m' # بدون رنگ
 
 # واکشی متغیرهای محیطی از .env یا استفاده از مقادیر پیش‌فرض
 DB_NAME=${DB_NAME:-picsend}
-DB_USER=${DB_USER:-root}
-DB_PASSWORD=${DB_PASSWORD:-123}
+DB_USER=${DB_USER:-picsend_user}
+DB_PASSWORD=${DB_PASSWORD:-Picsend@123}
 DB_HOST=${DB_HOST:-localhost}
 DB_PORT=${DB_PORT:-3306}
+DB_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-root}
 
-echo -e "${YELLOW}بررسی وضعیت MySQL...${NC}"
+echo -e "${YELLOW}در حال بررسی وضعیت MySQL...${NC}"
 
 # بررسی اینکه آیا MySQL در حال اجراست
 if ! command -v mysql &> /dev/null; then
@@ -24,8 +25,8 @@ if ! command -v mysql &> /dev/null; then
 fi
 
 # بررسی اینکه آیا سرویس MySQL در حال اجراست
-if ! pgrep -x "mysqld" > /dev/null; then
-    echo -e "${RED}سرویس MySQL در حال اجرا نیست. در حال راه‌اندازی...${NC}"
+if ! mysql --host=$DB_HOST --port=$DB_PORT --user=root --password=$DB_ROOT_PASSWORD -e "SELECT 1" &> /dev/null; then
+    echo -e "${RED}خطا در اتصال به MySQL. در حال تلاش برای راه‌اندازی...${NC}"
     
     # تشخیص نوع سیستم عامل و راه‌اندازی MySQL
     if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -33,7 +34,7 @@ if ! pgrep -x "mysqld" > /dev/null; then
         brew services start mysql
     elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
         # Linux
-        sudo service mysql start || sudo systemctl start mysql
+        sudo systemctl start mysql
     else
         echo -e "${RED}سیستم عامل پشتیبانی نمی‌شود. لطفاً MySQL را به صورت دستی راه‌اندازی کنید.${NC}"
         exit 1
@@ -44,8 +45,8 @@ if ! pgrep -x "mysqld" > /dev/null; then
     sleep 5
     
     # بررسی مجدد
-    if ! pgrep -x "mysqld" > /dev/null; then
-        echo -e "${RED}راه‌اندازی MySQL با شکست مواجه شد. لطفاً به صورت دستی راه‌اندازی کنید.${NC}"
+    if ! mysql --host=$DB_HOST --port=$DB_PORT --user=root --password=$DB_ROOT_PASSWORD -e "SELECT 1" &> /dev/null; then
+        echo -e "${RED}خطا در راه‌اندازی MySQL. لطفا به صورت دستی بررسی کنید.${NC}"
         exit 1
     fi
     
@@ -53,21 +54,37 @@ if ! pgrep -x "mysqld" > /dev/null; then
 fi
 
 echo -e "${GREEN}MySQL در حال اجراست.${NC}"
-echo -e "${YELLOW}در حال بررسی دیتابیس ${DB_NAME}...${NC}"
+echo -e "${YELLOW}در حال ایجاد دیتابیس ${DB_NAME} و کاربر ${DB_USER}...${NC}"
 
-# بررسی وجود دیتابیس
-if ! mysql -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" ${DB_PASSWORD:+-p"$DB_PASSWORD"} -e "USE ${DB_NAME}" 2>/dev/null; then
-    echo -e "${YELLOW}دیتابیس ${DB_NAME} وجود ندارد. در حال ایجاد...${NC}"
+# ایجاد دیتابیس و کاربر
+mysql --host=$DB_HOST --port=$DB_PORT --user=root --password=$DB_ROOT_PASSWORD -e "
+CREATE DATABASE IF NOT EXISTS $DB_NAME CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS '$DB_USER'@'%' IDENTIFIED BY '$DB_PASSWORD';
+GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'%';
+FLUSH PRIVILEGES;
+"
+
+if [ $? -eq 0 ]; then
+    echo -e "${GREEN}دیتابیس ${DB_NAME} و کاربر ${DB_USER} با موفقیت ایجاد شدند.${NC}"
+else
+    echo -e "${RED}خطا در ایجاد دیتابیس و کاربر.${NC}"
+    exit 1
+fi
+
+# اجرای اسکریپت اولیه SQL
+if [ -f "./scripts/setup-database.sql" ]; then
+    echo -e "${YELLOW}در حال اجرای اسکریپت اولیه...${NC}"
+    mysql --host=$DB_HOST --port=$DB_PORT --user=$DB_USER --password=$DB_PASSWORD $DB_NAME < ./scripts/setup-database.sql
     
-    # اجرای اسکریپت راه‌اندازی دیتابیس
-    if ! mysql -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" ${DB_PASSWORD:+-p"$DB_PASSWORD"} < "$(dirname "$0")/setup-database.sql"; then
-        echo -e "${RED}خطا در اجرای اسکریپت SQL. لطفاً دیتابیس را به صورت دستی راه‌اندازی کنید.${NC}"
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}اسکریپت اولیه با موفقیت اجرا شد.${NC}"
+    else
+        echo -e "${RED}خطا در اجرای اسکریپت اولیه.${NC}"
         exit 1
     fi
-    
-    echo -e "${GREEN}دیتابیس ${DB_NAME} با موفقیت ایجاد شد.${NC}"
 else
-    echo -e "${GREEN}دیتابیس ${DB_NAME} از قبل وجود دارد.${NC}"
+    echo -e "${RED}فایل اسکریپت اولیه یافت نشد.${NC}"
+    exit 1
 fi
 
 echo -e "${GREEN}راه‌اندازی MySQL و دیتابیس با موفقیت انجام شد!${NC}"

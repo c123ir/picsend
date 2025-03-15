@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS Users (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- جدول گروه‌ها
-CREATE TABLE IF NOT EXISTS Groups (
+CREATE TABLE IF NOT EXISTS UserGroups (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   description TEXT,
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS GroupMembers (
   userId INT NOT NULL,
   role ENUM('member', 'admin') DEFAULT 'member',
   joinedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (groupId) REFERENCES Groups(id) ON DELETE CASCADE,
+  FOREIGN KEY (groupId) REFERENCES UserGroups(id) ON DELETE CASCADE,
   FOREIGN KEY (userId) REFERENCES Users(id) ON DELETE CASCADE,
   UNIQUE KEY unique_group_member (groupId, userId)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS ImageShares (
   expiresAt DATETIME,
   FOREIGN KEY (imageId) REFERENCES Images(id) ON DELETE CASCADE,
   FOREIGN KEY (sharedWithUserId) REFERENCES Users(id) ON DELETE CASCADE,
-  FOREIGN KEY (sharedWithGroupId) REFERENCES Groups(id) ON DELETE CASCADE
+  FOREIGN KEY (sharedWithGroupId) REFERENCES UserGroups(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ایجاد کاربر مدیر پیش‌فرض (اگر هیچ کاربری وجود نداشته باشد)
