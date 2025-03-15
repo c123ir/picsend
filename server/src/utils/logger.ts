@@ -6,7 +6,7 @@ interface LogData {
   level: 'info' | 'warn' | 'error';
   message: string;
   service: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 class Logger {
@@ -23,7 +23,7 @@ class Logger {
     }
   }
 
-  static info(message: string, metadata?: any): void {
+  static info(message: string, metadata?: Record<string, unknown>): void {
     this.sendLog({
       level: 'info',
       message,
@@ -32,7 +32,7 @@ class Logger {
     });
   }
 
-  static warn(message: string, metadata?: any): void {
+  static warn(message: string, metadata?: Record<string, unknown>): void {
     this.sendLog({
       level: 'warn',
       message,
@@ -41,7 +41,7 @@ class Logger {
     });
   }
 
-  static error(message: string, metadata?: any): void {
+  static error(message: string, metadata?: Record<string, unknown>): void {
     this.sendLog({
       level: 'error',
       message,

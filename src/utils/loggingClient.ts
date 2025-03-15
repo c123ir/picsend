@@ -8,7 +8,7 @@ class LoggingClient {
   private readonly apiUrl: string;
   private readonly source: string;
   private isConnected: boolean = false;
-  private offlineQueue: any[] = [];
+  private offlineQueue: Record<string, unknown>[] = [];
   private static instance: LoggingClient;
 
   private constructor() {
@@ -78,7 +78,7 @@ class LoggingClient {
     }
   }
 
-  private saveToLocalStorage(level: string, message: string, metadata: any = {}) {
+  private saveToLocalStorage(level: string, message: string, metadata: Record<string, unknown> = {}) {
     try {
       const storageKey = 'picsend_offline_logs';
       const logs = JSON.parse(localStorage.getItem(storageKey) || '[]');
@@ -154,7 +154,7 @@ class LoggingClient {
     }
   }
 
-  public async sendLog(level: string, message: string, metadata: any = {}) {
+  public async sendLog(level: string, message: string, metadata: Record<string, unknown> = {}) {
     // بررسی سطح لاگ
     const logLevels = ['debug', 'info', 'warn', 'error'];
     const currentLevelIndex = logLevels.indexOf(env.LOG_LEVEL);
@@ -229,19 +229,19 @@ class LoggingClient {
     }
   }
 
-  public error(message: string, metadata?: any) {
+  public error(message: string, metadata?: Record<string, unknown>) {
     return this.sendLog('error', message, metadata);
   }
 
-  public warn(message: string, metadata?: any) {
+  public warn(message: string, metadata?: Record<string, unknown>) {
     return this.sendLog('warn', message, metadata);
   }
 
-  public info(message: string, metadata?: any) {
+  public info(message: string, metadata?: Record<string, unknown>) {
     return this.sendLog('info', message, metadata);
   }
 
-  public debug(message: string, metadata?: any) {
+  public debug(message: string, metadata?: Record<string, unknown>) {
     return this.sendLog('debug', message, metadata);
   }
 
@@ -257,7 +257,7 @@ class LoggingClient {
    * ثبت خطاهای داخلی سیستم
    * این متد برای استفاده دیباگ است و در محیط تولید کاربردی ندارد
    */
-  public logSystemInfo(info: string, metadata?: any) {
+  public logSystemInfo(info: string, metadata?: Record<string, unknown>) {
     if (env.NODE_ENV !== 'production') {
       return this.debug(`سیستم: ${info}`, { ...metadata, type: 'system' });
     }
@@ -267,7 +267,7 @@ class LoggingClient {
    * ثبت رویدادهای کاربر
    * برای تحلیل رفتار کاربران و بهبود تجربه کاربری
    */
-  public logUserAction(action: string, metadata?: any) {
+  public logUserAction(action: string, metadata?: Record<string, unknown>) {
     return this.info(`کاربر: ${action}`, { ...metadata, type: 'user_action' });
   }
   
@@ -275,7 +275,7 @@ class LoggingClient {
    * ثبت رویدادهای خرید و پرداخت
    * برای تحلیل فرآیندهای مالی
    */
-  public logPayment(status: string, metadata?: any) {
+  public logPayment(status: string, metadata?: Record<string, unknown>) {
     return this.info(`پرداخت: ${status}`, { ...metadata, type: 'payment' });
   }
   
