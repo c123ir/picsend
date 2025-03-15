@@ -1,40 +1,27 @@
-import express, { Router } from 'express';
-import { auth } from '../middleware/auth';
-import {
-  getUserByPhone,
-  getUserByEmail,
-  createUser,
-  updateUser,
-  getUserById,
-  updateLastLogin,
-  deactivateUser,
-  activateUser
-} from '../controllers/userController';
-import Logger from '../utils/logger';
+import express from 'express';
+import { authMiddleware } from '../middleware/auth';
+import { adminMiddleware } from '../middleware/admin';
+import UserController from '../controllers/userController';
 
-const router: Router = express.Router();
+const router = express.Router();
+const userController = new UserController();
 
 // مسیرهای عمومی
-router.get('/phone/:phone', getUserByPhone as express.RequestHandler);
-router.get('/email/:email', getUserByEmail as express.RequestHandler);
-router.post('/', createUser as express.RequestHandler);
+router.get('/profile/:id', userController.getUserProfile);
 
-// مسیرهای محافظت شده
-router.use(auth as express.RequestHandler);
-router.patch('/:id', updateUser as express.RequestHandler);
-router.get('/:id', getUserById as express.RequestHandler);
-router.post('/:id/last-login', updateLastLogin as express.RequestHandler);
-router.post('/:id/deactivate', deactivateUser as express.RequestHandler);
-router.post('/:id/activate', activateUser as express.RequestHandler);
+// مسیرهای با احراز هویت
+router.get('/me', authMiddleware, userController.getMyProfile);
+router.put('/me', authMiddleware, userController.updateMyProfile);
+router.put('/me/password', authMiddleware, userController.changePassword);
+router.delete('/me', authMiddleware, userController.deleteMyAccount);
 
-// لاگ کردن درخواست‌های مسیر کاربران
-router.use((req, res, next) => {
-  Logger.info('درخواست به مسیر کاربران', {
-    method: req.method,
-    path: req.path,
-    userId: req.user?.id
-  });
-  next();
-});
+// مسیرهای مدیریتی (فقط برای ادمین)
+router.get('/', authMiddleware, adminMiddleware, userController.getAllUsers);
+router.post('/', authMiddleware, adminMiddleware, userController.createUser);
+router.get('/:id', authMiddleware, adminMiddleware, userController.getUserById);
+router.put('/:id', authMiddleware, adminMiddleware, userController.updateUser);
+router.delete('/:id', authMiddleware, adminMiddleware, userController.deleteUser);
+router.put('/:id/activate', authMiddleware, adminMiddleware, userController.activateUser);
+router.put('/:id/deactivate', authMiddleware, adminMiddleware, userController.deactivateUser);
 
 export default router; 

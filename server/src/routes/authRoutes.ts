@@ -1,16 +1,33 @@
-import express, { Router, Request, Response, NextFunction } from 'express';
-import { sendVerificationCode, verifyCode, loginWithUsername } from '../controllers/authController';
+import express from 'express';
+import AuthController from '../controllers/authController';
+import { authMiddleware } from '../middleware/auth';
+import { loggingClient } from '../utils/logging-client';
 
-const router: Router = express.Router();
+const router = express.Router();
+const authController = new AuthController();
 
-const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<any>) => 
-  (req: Request, res: Response, next: NextFunction) => {
-    Promise.resolve(fn(req, res, next)).catch(next);
-  };
+// مسیرهای احراز هویت
+router.post('/login', authController.login);
+router.post('/register', authController.register);
+router.post('/forgot-password', authController.forgotPassword);
+router.post('/reset-password', authController.resetPassword);
+router.post('/verify-email', authController.verifyEmail);
+router.post('/verify-phone', authController.verifyPhone);
+router.post('/request-verification', authController.requestVerification);
 
-router.post('/send-code', asyncHandler(sendVerificationCode));
-router.post('/verify-code', asyncHandler(verifyCode));
+// مسیرهای نیازمند احراز هویت
+router.post('/logout', authMiddleware, authController.logout);
+router.get('/refresh-token', authMiddleware, authController.refreshToken);
+router.get('/verify-token', authMiddleware, authController.verifyToken);
 
-router.post('/login', asyncHandler(loginWithUsername));
+// لاگ کردن درخواست‌های احراز هویت
+router.use((req, res, next) => {
+  loggingClient.debug('درخواست به مسیر احراز هویت', {
+    method: req.method,
+    path: req.path,
+    action: 'auth_route_request'
+  });
+  next();
+});
 
 export default router;
