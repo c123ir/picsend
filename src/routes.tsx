@@ -15,10 +15,14 @@ import { ProfilePage } from './pages/ProfilePage';
 import { SettingsPage } from './pages/SettingsPage';
 import { PhoneLoginPage } from './pages/PhoneLoginPage';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
+import { AdminRoute } from './components/auth/AdminRoute';
 import { RequestsPage } from './pages/RequestsPage';
 import LoggingTest from './components/LoggingTest';
 import LogTester from './components/LogTester';
+import UserManagementPage from './pages/UserManagementPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
 import { useAuth } from './contexts/AuthContext';
+import { loggingClient } from './utils/loggingClient';
 
 interface LocationState {
   from?: {
@@ -29,7 +33,17 @@ interface LocationState {
 export const AppRouter: React.FC = () => {
   const location = useLocation();
   const state = location.state as LocationState;
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+
+  // لاگ کردن تغییر مسیرها
+  React.useEffect(() => {
+    loggingClient.info('ناوبری به صفحه جدید', {
+      path: location.pathname,
+      action: 'navigation', 
+      userId: user?.id,
+      role: user?.role,
+    });
+  }, [location.pathname, user?.id, user?.role]);
 
   // مدیریت ریدایرکت پس از ورود موفق
   const redirectAfterLogin = () => {
@@ -67,6 +81,27 @@ export const AppRouter: React.FC = () => {
           <MainLayout>
             <DashboardPage />
           </MainLayout>
+        </ProtectedRoute>
+      } />
+      
+      {/* صفحات مدیریتی - فقط برای مدیران */}
+      <Route path="/admin" element={
+        <ProtectedRoute>
+          <AdminRoute>
+            <MainLayout>
+              <AdminDashboardPage />
+            </MainLayout>
+          </AdminRoute>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/admin/users" element={
+        <ProtectedRoute>
+          <AdminRoute>
+            <MainLayout>
+              <UserManagementPage />
+            </MainLayout>
+          </AdminRoute>
         </ProtectedRoute>
       } />
       

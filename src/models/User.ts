@@ -1,6 +1,6 @@
 export interface User {
   id: string;
-  phone: string;
+  phone: string | null;
   fullName?: string;
   email?: string;
   avatar?: string;
@@ -13,14 +13,16 @@ export interface User {
 
 export interface CreateUserDTO {
   phone: string;
-  fullName?: string;
   email?: string;
+  fullName?: string;
   role?: 'user' | 'admin';
+  isActive?: boolean;
 }
 
 export interface UpdateUserDTO {
-  fullName?: string;
+  phone?: string;
   email?: string;
+  fullName?: string;
   avatar?: string;
   isActive?: boolean;
   role?: 'user' | 'admin';

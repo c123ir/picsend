@@ -289,4 +289,5 @@ class LoggingClient {
   }
 }
 
+// اکسپورت کلاینت لاگینگ به عنوان شی واحد
 export const loggingClient = LoggingClient.getInstance();

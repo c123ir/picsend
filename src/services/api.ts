@@ -5,7 +5,7 @@ const logger = loggers.api;
 
 // تنظیمات پایه axios
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3010',
+    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3010/api',
     timeout: 10000,
     headers: {
         'Content-Type': 'application/json'

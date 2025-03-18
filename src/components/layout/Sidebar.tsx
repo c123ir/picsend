@@ -21,14 +21,20 @@ import {
   Receipt as ReceiptIcon,
   Search as SearchIcon,
   Add as AddIcon,
+  SupervisorAccount as AdminIcon,
+  People as PeopleIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 
 export const Sidebar = () => {
   const navigate = useNavigate();
   const theme = useTheme();
+  const { user } = useAuth();
   const [searchValue, setSearchValue] = useState('');
+  
+  const isAdmin = user?.role === 'admin';
 
   const mainMenuItems = [
     {
@@ -50,6 +56,20 @@ export const Sidebar = () => {
       text: 'درخواست‌ها',
       icon: <ReceiptIcon />,
       path: '/requests',
+    },
+  ];
+  
+  // منوی مدیریتی فقط برای مدیران
+  const adminMenuItems = [
+    {
+      text: 'پنل مدیریت',
+      icon: <AdminIcon />,
+      path: '/admin',
+    },
+    {
+      text: 'مدیریت کاربران',
+      icon: <PeopleIcon />,
+      path: '/admin/users',
     },
   ];
 
@@ -148,6 +168,49 @@ export const Sidebar = () => {
             </ListItem>
           ))}
         </List>
+        
+        {/* بخش منوی مدیر - فقط برای کاربران با نقش مدیر نمایش داده می‌شود */}
+        {isAdmin && (
+          <>
+            <Divider sx={{ my: 2 }} />
+            <Typography
+              variant="subtitle2"
+              color="text.secondary"
+              sx={{ px: 2, mb: 1, fontWeight: 500 }}
+            >
+              بخش مدیریت
+            </Typography>
+            
+            <List sx={{ px: 1 }}>
+              {adminMenuItems.map((item) => (
+                <ListItem key={item.text} disablePadding>
+                  <ListItemButton
+                    onClick={() => navigate(item.path)}
+                    sx={{
+                      borderRadius: 1,
+                      mb: 0.5,
+                      color: 'text.primary',
+                      '&:hover': {
+                        bgcolor: alpha(theme.palette.secondary.main, 0.08),
+                      },
+                    }}
+                  >
+                    <ListItemIcon sx={{ color: theme.palette.secondary.main }}>
+                      {item.icon}
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={item.text}
+                      primaryTypographyProps={{
+                        fontSize: '0.9rem',
+                        fontWeight: 500,
+                      }}
+                    />
+                  </ListItemButton>
+                </ListItem>
+              ))}
+            </List>
+          </>
+        )}
 
         <Divider sx={{ my: 2 }} />
 

@@ -112,7 +112,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: username,
         fullName: 'کاربر آزمایشی',
         isActive: true,
-        role: 'user',
+        role: 'admin',
         createdAt: new Date(),
         updatedAt: new Date(),
         lastLoginAt: new Date()
